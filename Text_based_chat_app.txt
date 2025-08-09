@@ -1,0 +1,72 @@
+#text-based chat app
+import socket
+import threading
+import time
+
+# Shared host and port
+HOST = '127.0.0.1'
+PORT = 12345
+
+# To Compile Server
+
+def start_server():
+    server=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+    server.bind((HOST,PORT))
+    server.listen(2)
+    print("[Server] Started and waiting for clients...")
+    clients=[]
+
+    def handle_client(client):
+        while True:
+            try:
+                msg=client.recv(1024)
+                print(f"[Server received]: {msg.decode()}")
+                for c in clients:
+                    if c!=client:
+                        c.send(msg)
+            except:
+                break
+
+    def accept_clients():
+        while len(clients) < 2:
+            client_socket, addr = server.accept()
+            print(f"[Server] Client connected from {addr}")
+            clients.append(client_socket)
+            thread = threading.Thread(target=handle_client, args=(client_socket,))
+            thread.start()
+
+    accept_clients()
+
+# To Compile Client Code
+
+def start_client(name,message_list):
+    client=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+    client.connect((HOST,PORT))
+    print(f"[{name}] Connected to server.")
+
+    def receive():
+        while True:
+            try:
+                msg=client.recv(1024).decode()
+                print(f"\n[{name} got]: {msg}")
+            except:
+                break
+
+    def send():
+        for msg in message_list:
+            full_msg = f"{name}: {msg}"
+            client.send(full_msg.encode())
+            time.sleep(1)
+
+    threading.Thread(target=receive).start()
+    threading.Thread(target=send).start()
+
+# To compile both server & client
+
+# Start server in thread
+threading.Thread(target=start_server).start()
+time.sleep(1)
+
+# Start two clients
+threading.Thread(target=start_client,args=("User1", ["Hi", "How are you?"])).start()
+threading.Thread(target=start_client,args=("User2", ["Hello", "I'm good, thanks!"])).start()
